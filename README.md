@@ -73,7 +73,7 @@ The skill picks a mode from the text type. Strict covers procedures, error messa
 | `skills/ste-rewrite/references/examples.md` | Eight examples with their mode and the reason for each change. Claude reads the file only for a tool description or Flavored prose. |
 | `skills/ste-rewrite/references/writing-rules.md` | The rule summary and its citations. Claude reads the file on request. |
 | `skills/ste-rewrite/scripts/ste-lint` | The command line of the linter. The skill runs it by its path in the installed plugin, with no permission prompt. |
-| `skills/ste-rewrite/scripts/ste_*.py` | The parts of the linter: `ste_rules` the rules, `ste_words` the word lists, `ste_blocks` the document structure, `ste_tables` the tables, `ste_text` the sentences and the masking. |
+| `skills/ste-rewrite/scripts/ste_*.py` | The parts of the linter: `ste_rules` the rules, `ste_words` the word lists, `ste_blocks` the document structure. `ste_fences` holds the code fences, `ste_html` the HTML blocks, `ste_tables` the tables, `ste_chars` the hidden characters, `ste_text` the sentences and the masking. |
 | `evals/` | Cases for `claude plugin eval` and trigger queries for the skill description. Not loaded at run time. |
 | `evals/SOURCES.md` | The source of each eval input that comes from captured Claude Code prompt text. |
 | `evals/compare-runs.py` | Compares two eval runs case by case, and marks each case that a change fixed or broke. |
@@ -107,7 +107,7 @@ skills/ste-rewrite/scripts/ste-lint --json --baseline 5 docs/*.md
 | `passive-voice` | advisory | A possible passive |
 | `present-perfect` | advisory | A compound tense, except after a modal ("may have failed") |
 
-Flags: `--json`, `--baseline N` (pass unless hard findings exceed N, default 0), `--disable RULES`, `--max-words N` (default 25), and `--limit N` (text output only, default 50, 0 for all). Exit codes: 0 pass, 1 hard findings over the baseline, 2 usage error. `ste-lint --help` lists the details. A text output line has the form `file:line:col: rule: message [match]`, so an editor can parse it.
+Flags: `--json`, `--baseline N` (pass unless hard findings exceed N, default 0), `--disable RULES` (repeatable), `--max-words N` (default 25), and `--limit N` (text output only, default 50, 0 for all). Exit codes: 0 pass, 1 hard findings over the baseline, 2 usage error. `ste-lint --help` lists the details. A text output line has the form `file:line:col: rule: message [match]`, so an editor can parse it.
 
 The linter never flags hedges or modality, because confidence is content. It does not check noun clusters, one instruction per sentence, phrasal verbs outside its list ("take off the panel" passes), or meaning. It does not compare a rewrite with its source. Zero findings means that these checks found nothing, not that the text follows STE.
 

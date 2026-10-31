@@ -65,6 +65,14 @@ class MarkdownTests(unittest.TestCase):
                          [("semicolon", 3, 4), ("long-sentence", 3, 10)])
         self.assertEqual(len(rules("| a; b |\n| --- |\n| c |", "semicolon")), 1)  # one column
 
+    def test_gfm_table_shapes(self):
+        row = " ".join(f"term{n}" for n in range(1, 9))
+        for table in ("| Label | Detail |\n|-|-|\n" + f"| {row} | {row} |\n" * 5,
+                      "| Label |\n| --- |\n" + f"| {row} |\n" * 8,
+                      "| Label | Detail |\n| --- | --- |\n| x |\n"
+                      + f"| {row} | {row} | extra |\n" * 2):
+            self.assertEqual(rules(table, "long-sentence"), [], table)
+
     def test_table_separator_not_linted(self):
         self.assertEqual(rules("| A | B |\n| --- | --- |\n| x | y |"), [])
 

@@ -49,6 +49,11 @@ class CliTests(unittest.TestCase):
         self.assertEqual(run(["--disable", "semicolon"], "a; b.\n").returncode, 0)
         self.assertEqual(run(["--disable", "semicolon,passive-voice"], "a; b.\n").returncode, 0)
 
+    def test_repeated_disable_flags_add_up(self):
+        text = "a; b. " + " ".join(["word"] * 30) + ".\n"
+        r = run(["--json", "--disable", "semicolon", "--disable", "long-sentence"], text)
+        self.assertEqual(r.returncode, 0, r.stdout)
+
     def test_disable_invisible_character(self):
         text = "Use a\u00a0space.\n"
         self.assertEqual(run([], text).returncode, 1)

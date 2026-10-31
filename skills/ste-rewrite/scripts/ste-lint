@@ -85,8 +85,8 @@ def build_parser():
     parser.add_argument("--json", action="store_true", help="print findings as JSON")
     parser.add_argument("--baseline", type=at_least(MIN_COUNT), default=DEFAULT_BASELINE, metavar="N",
                         help=f"fail only when hard findings exceed N (default {DEFAULT_BASELINE})")
-    parser.add_argument("--disable", type=rule_list, default=set(), metavar="RULES",
-                        help="comma-separated rule IDs to drop")
+    parser.add_argument("--disable", type=rule_list, action="append", default=[], metavar="RULES",
+                        help="comma-separated rule IDs to drop; may be repeated")
     parser.add_argument("--max-words", type=at_least(MIN_WORD_CAP), default=DEFAULT_MAX_WORDS,
                         metavar="N", help=f"sentence word cap (default {DEFAULT_MAX_WORDS})")
     parser.add_argument("--limit", type=at_least(MIN_COUNT), default=DEFAULT_LIMIT, metavar="N",
@@ -114,12 +114,13 @@ def display(path):
 def main(argv=None):
     parser = build_parser()
     args = parser.parse_intermixed_args(argv)
+    disabled = set().union(*args.disable)
 
     findings = []
     for path in args.paths or [STDIN_PATH]:
         text = read(path, parser)
         findings += [item for item in lint(text, display(path), args.max_words)
-                     if item["rule"] not in args.disable]
+                     if item["rule"] not in disabled]
     hard = sum(item["level"] == HARD for item in findings)
 
     if args.json:

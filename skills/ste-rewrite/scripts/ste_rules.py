@@ -55,7 +55,9 @@ PASSIVE_PARTICIPLE = r"\w{%d,}ed" % MIN_PARTICIPLE_STEM
 AUXILIARY = _any_of(AUXILIARIES)
 PERFECT = _any_of(PERFECT_AUXILIARIES)
 DETERMINER = _any_of(DETERMINERS)
-MODAL_BEFORE = re.compile(r"\b" + _any_of(MODALS) + r"(?:\s+not|n?['’]t)?\s+$", re.I)
+# An adverb may stand between the modal and "have": "might already have run".
+MODAL_BEFORE = re.compile(r"\b" + _any_of(MODALS) + r"(?:n?['’]t)?(?:\s+" + _any_of(GAP_WORDS)
+                          + r"){0," + str(MAX_GAP_WORDS) + r"}\s+$", re.I)
 GERUND_AFTER = r"(?!\s+(?:" + "|".join(GERUND_PREPOSITIONS) + r")\s+\w+ing)"
 # A short vowel before one consonant doubles that consonant: "stop" gives "stopped".
 CONSONANT_VOWEL_CONSONANT = re.compile(

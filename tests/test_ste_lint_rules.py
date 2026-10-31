@@ -52,6 +52,13 @@ class PerfectTests(unittest.TestCase):
                              "present-perfect"))
         self.assertFalse(has("It can’t have run.", "present-perfect"))
 
+    def test_modal_protection_with_an_adverb_before_have(self):
+        self.assertFalse(has("It might already have finished. It could not possibly have run. "
+                             "It may never have started. It should probably have stopped.",
+                             "present-perfect"))
+        self.assertEqual(len(rules("The task already has run. They probably have finished.",
+                                   "present-perfect")), 2)
+
     def test_cannot_is_a_modal(self):
         for text in ("It cannot have failed.", "It can't have failed.",
                      "It CANNOT have run."):

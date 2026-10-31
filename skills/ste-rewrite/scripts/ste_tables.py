@@ -9,9 +9,8 @@ from ste_text import view
 CELL_BORDER = "|"
 ESCAPED_BORDER = "\\|"
 UNESCAPED_BORDER = re.compile(r"(?<!\\)\|")
-MIN_SEPARATOR_DASHES = 3  # CommonMark: a delimiter cell holds at least 3 dashes
-SEPARATOR_CELL = re.compile(r":?-{%d,}:?" % MIN_SEPARATOR_DASHES)
-MIN_CELLS = 2  # one border makes two cells; fewer means the line is plain prose
+SEPARATOR_CELL = re.compile(r":?-+:?")  # GFM: a delimiter cell holds at least 1 dash
+MIN_CELLS = 2  # without an edge border, one inner border makes two cells
 
 
 def split_row(text, start=0):
@@ -21,12 +20,13 @@ def split_row(text, start=0):
         return None
     col = start + len(row) - len(row.lstrip())
     row = row.strip()
+    edge = False
     if row.startswith(CELL_BORDER):
-        row, col = row[len(CELL_BORDER):], col + len(CELL_BORDER)
+        row, col, edge = row[len(CELL_BORDER):], col + len(CELL_BORDER), True
     if row.endswith(CELL_BORDER) and not row.endswith(ESCAPED_BORDER):
-        row = row[:-len(CELL_BORDER)]
+        row, edge = row[:-len(CELL_BORDER)], True
     parts = UNESCAPED_BORDER.split(row)
-    if len(parts) < MIN_CELLS:
+    if len(parts) < MIN_CELLS and not edge:
         return None
     cells = []
     for part in parts:
@@ -44,13 +44,15 @@ def read_table(lines, index, header):
     """Read the body rows of a table. Return (rows, next index).
 
     `index` points at the separator line. `header` is the split header row.
+    As in GFM, a body row may hold fewer or more cells than the header, and a
+    line that is no row ends the table.
     """
     rows = [(index, header)]  # the header sits one line above the separator
     index += 1
     while index < len(lines):
         row_text, row_pre = view(lines[index])
         row = split_row(row_text, row_pre)
-        if not row or len(row) != len(header):
+        if not row:
             break
         index += 1
         rows.append((index, row))
