@@ -13,7 +13,8 @@ from ste_chars import invisible_characters, mixed_script_words
 from ste_text import long_sentences, word_before
 from ste_words import (AUXILIARIES, CONSONANT_Y, DETERMINERS, DOUBLING_CONSONANTS,
                        EMPTY_VERBS, EXTRA_FORMS, GAP_WORDS, GERUND_ING, GERUND_PREPOSITIONS,
-                       IDIOM, IRREGULAR, MARKETING_ADJECTIVES, MAX_GAP_WORDS, MODALS,
+                       IDIOM, IRREGULAR, MARKETING_ADJECTIVES, MAX_GAP_WORDS, MODAL_GAP_WORDS,
+                       MODAL_NEGATIVES, MODALS,
                        NOMINAL_ADJECTIVES, NOMINALS, NOT_PARTICIPLE, NOUN_BEFORE, PAST_D,
                        PAST_ED, PAST_IED, PERFECT_AUXILIARIES, PHRASAL_VERBS, PLURAL_ES,
                        PLURAL_IES, PLURAL_S, SIBILANT_ENDINGS, SILENT_E, SYNONYMS, TRANSITIVE,
@@ -56,8 +57,9 @@ AUXILIARY = _any_of(AUXILIARIES)
 PERFECT = _any_of(PERFECT_AUXILIARIES)
 DETERMINER = _any_of(DETERMINERS)
 # An adverb may stand between the modal and "have": "might already have run".
-MODAL_BEFORE = re.compile(r"\b" + _any_of(MODALS) + r"(?:n?['’]t)?(?:\s+" + _any_of(GAP_WORDS)
-                          + r"){0," + str(MAX_GAP_WORDS) + r"}\s+$", re.I)
+MODAL_BEFORE = re.compile(r"\b(?:" + _any_of(MODALS) + r"(?:n?['’]t)?|" + _any_of(MODAL_NEGATIVES)
+                          + r")(?:\s+" + _any_of(MODAL_GAP_WORDS) + r"){0,"
+                          + str(MAX_GAP_WORDS) + r"}\s+$", re.I)
 GERUND_AFTER = r"(?!\s+(?:" + "|".join(GERUND_PREPOSITIONS) + r")\s+\w+ing)"
 # A short vowel before one consonant doubles that consonant: "stop" gives "stopped".
 CONSONANT_VOWEL_CONSONANT = re.compile(
@@ -66,17 +68,20 @@ CONSONANT_VOWEL_CONSONANT = re.compile(
 Rule = namedtuple("Rule", "name level pattern message skip")
 
 
-def _skip_passive(piece, found):
+def _skip_passive(piece, found, _before):
     """Drop a false passive: a non-participle, or an idiom such as "is used to"."""
     word = found.group("part").lower()
     return (word in NOT_PARTICIPLE
             or (word in IDIOM and piece[found.end():].startswith(TO_IDIOM)))
 
 
-def _skip_perfect(piece, found):
-    """Drop a non-participle, and a compound tense that a modal governs."""
+def _skip_perfect(piece, found, before):
+    """Drop a non-participle, and a compound tense that a modal governs.
+
+    `before` is the line before in the same block, so "may" at its end still governs.
+    """
     return (found.group("part").lower() in NOT_PARTICIPLE
-            or bool(MODAL_BEFORE.search(piece[:found.start()])))
+            or bool(MODAL_BEFORE.search(before + " " + piece[:found.start()])))
 
 
 RULES = (
@@ -150,10 +155,11 @@ def lint(text, name, cap):
 
     seen = {}
     for block in blocks:
+        before = ""
         for lineno, col, piece in block:
             for rule in RULES:
                 for hit in rule.pattern.finditer(piece):
-                    if rule.skip and rule.skip(piece, hit):
+                    if rule.skip and rule.skip(piece, hit, before):
                         continue
                     add(lineno, col + hit.start() + 1, rule.name, hit.group(0), rule.message)
             for hit in SYNONYM_RE.finditer(piece):
@@ -161,6 +167,7 @@ def lint(text, name, cap):
                     continue
                 base = BASE_OF[hit.group(1).lower()]
                 seen.setdefault(base, (lineno, col + hit.start() + 1, hit.group(1)))
+            before = piece
         for lineno, col, count in long_sentences(block, cap):
             add(lineno, col, LONG_SENTENCE, f"{count} words",
                 f"Sentence has {count} words (cap {cap}). Split it.")

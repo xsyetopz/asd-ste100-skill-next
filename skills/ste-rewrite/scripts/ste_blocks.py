@@ -10,6 +10,7 @@ import re
 
 from ste_fences import closes, ends_with_quote, open_fence, strip_quotes
 from ste_html import html_step, track_containers
+from ste_spans import blank, breaks, code_spans
 from ste_tables import is_separator, read_table, split_row
 from ste_text import KEEP, LINE_BREAK, TAB_WIDTH, indent_of, mask, prefix_length, view
 from ste_words import ALERT_WORDS, LIST_CONJUNCTIONS
@@ -63,6 +64,7 @@ class Scanner:
         self.prev_quote = False
         self.item = None
         self.index = 0
+        self.open_span = 0  # the run length of a code span open across lines
 
     def _cut(self):
         if self.current:
@@ -184,6 +186,8 @@ class Scanner:
         return self.blocks, self.dangling
 
     def _line(self, raw, lineno):
+        if self.open_span and lineno > 1 and breaks(self.lines[lineno - 2], raw):
+            self.open_span = 0
         if self.fence and ends_with_quote(self.fence, raw):
             self.fence = None  # the quote of the fence ended: judge the line as any other
             self._cut()
@@ -200,7 +204,7 @@ class Scanner:
         self.after_boundary = not raw.strip()
 
     def _text_line(self, raw, lineno):
-        if not raw.strip():
+        if not raw[prefix_length(raw):].strip():  # a quote-only line is blank in its quote
             self._cut()
             self.prev_text = self.prev_quote = False
             return
@@ -210,22 +214,32 @@ class Scanner:
             return
         line = self._blank_comment(raw)
         track_containers(self.containers, line)
-        text_line, pre = view(line)
+        spans, open_after = code_spans(line, self.open_span, self.lines, self.index)
+        self.open_span = 0
+        plain_line, pre = view(line)
+        text_line = view(blank(line, spans))[0]
         quoted = pre > 0
         body = line[pre:]
         indent = indent_of(body)
         marker = LIST_ITEM.match(body)
         starts_item = bool(marker) and not THEMATIC.match(body)
+        # A lazy line continues the paragraph of its item, so the list stays open and an
+        # indented line after it is prose. The dangling check still ends the item here.
+        lazy = (self.prev_text and self.item and not starts_item and not quoted
+                and not HEADING.match(body) and not THEMATIC.match(body))
         if self.item and (starts_item or quoted or indent < self.item["indent"]):
             self._close_item()
-        if not starts_item and not quoted and indent == 0:
+        if not starts_item and not quoted and indent == 0 and not lazy:
             self.list_open = False
         was_quote, self.prev_quote = self.prev_quote, quoted
         if quoted != was_quote:
             self._cut()
+        # Indented code starts 4 columns past the content of its item. A quoted list
+        # tracks no item, so its lines stay prose.
+        item_indent = self.item["indent"] if self.item else 0
         if raw[pre:].lstrip().startswith(HTML_OPEN) or (
-                indent >= CODE_INDENT and not self.list_open
-                and not self.prev_text and not quoted):
+                indent >= CODE_INDENT + item_indent and not self.prev_text
+                and (self.item or not self.list_open)):
             self._cut()
             self.prev_text = False
             return
@@ -245,9 +259,11 @@ class Scanner:
                 self.current.append((lineno, 0, BLANK * end + text_line[end:]))
                 self._cut()
             return
-        if not starts_item and self._table_step(text_line, pre):
+        # A table cell holds its own spans, so the table reads the line without them.
+        if not starts_item and self._table_step(plain_line, pre):
             return
-        item_text = mask(line, KEEP)
+        self.open_span = open_after
+        item_text = mask(blank(line, spans, KEEP), KEEP)
         if starts_item:
             end = pre + marker.end()
             text_line = BLANK * end + text_line[end:]

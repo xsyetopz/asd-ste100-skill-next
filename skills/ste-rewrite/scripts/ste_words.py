@@ -102,6 +102,10 @@ AUXILIARIES = ("is", "are", "was", "were", "been", "being")
 PERFECT_AUXILIARIES = ("has", "have", "had")
 DETERMINERS = ("a", "an", "the")
 MODALS = ("cannot", "may", "might", "could", "should", "would", "must", "can", "will", "shall")
+# Negatives that the n't suffix of MODALS cannot build: "won't", "shan't".
+MODAL_NEGATIVES = (r"won['’]t", r"shan['’]t")
+# A hedge may also stack an intensifier: "may very well have failed".
+MODAL_GAP_WORDS = GAP_WORDS + ("very", "well")
 
 # "is used to run" and "is made for testing" are no passive when a gerund follows.
 GERUND_PREPOSITIONS = ("to", "for", "by")
