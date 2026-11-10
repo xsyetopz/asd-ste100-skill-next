@@ -37,11 +37,11 @@ git clone https://github.com/danyuchn/asd-ste100-skill
 cp -R asd-ste100-skill/skills/ste-rewrite ~/.claude/skills/
 ```
 
-As a Claude Code plugin:
+As a Claude Code plugin, from the `xsyetopz` marketplace:
 
 ```bash
-claude plugin marketplace add danyuchn/asd-ste100-skill
-claude plugin install asd-ste100@asd-ste100-skill
+claude plugin marketplace add xsyetopz/bedrock
+claude plugin install asd-ste100@xsyetopz
 ```
 
 To try a local checkout for one session, run `claude --plugin-dir .` in the repository.

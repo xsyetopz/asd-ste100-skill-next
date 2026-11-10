@@ -11,7 +11,7 @@ skill_baseline := "0"
 rules_baseline := "1"
 
 plugin := "asd-ste100"
-marketplace := "danyuchn/asd-ste100-skill"
+marketplace := "xsyetopz/bedrock"
 
 # Each model of the matrix runs at its own effort, because CLAUDE_CODE_EFFORT_LEVEL
 # wins over --effort and the settings. Sonnet 5.5 and Opus 5.5 run at medium, the
@@ -125,7 +125,7 @@ fire-rate rounds="3" model="claude-haiku-5-5" case="":
     eff=$(test "{{ model }}" = "{{ haiku }}" && echo {{ haiku_effort }} || echo {{ effort }}); \
     CLAUDE_CODE_EFFORT_LEVEL="$eff" evals/fire-rate.sh {{ rounds }} {{ model }} {{ case }}
 
-# Install the plugin from the marketplace.
+# Install the plugin from the xsyetopz marketplace.
 install:
     claude plugin marketplace add {{ marketplace }}
-    claude plugin install {{ plugin }}@asd-ste100-skill
+    claude plugin install {{ plugin }}@xsyetopz
